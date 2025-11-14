@@ -1,5 +1,5 @@
 
-name: Unity Multi Build (Android + Windows + WebGL)
+name: Build Unity Android
 
 on:
   push:
@@ -10,90 +10,61 @@ on:
 
 jobs:
   build:
+    name: Build Unity Android Project
     runs-on: ubuntu-latest
-    name: Build LudoDream
 
     steps:
-      # --- Checkout project ---
+      # 1. Récupération du code
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      # --- Cache Unity ---
-      - name: Cache Unity
-        uses: actions/cache@v4
+      # 2. Cache Unity
+      - name: Unity Cache
+        uses: actions/cache@v3
         with:
           path: ~/.cache/unity3d
-          key: cache-unity-${{ runner.os }}
-
-      # --- Install Unity (NEW URL GameCI 2025) ---
+          key: Unity-${{ runner.os }}
+      
+      # 3. Installer Unity (2022.3.20f1)
       - name: Install Unity
-        uses: game-ci/unity-setup@v3
+        uses: game-ci/unity-installer@v3
         with:
           unityVersion: 2022.3.20f1
-          modules: |
-            android
-            windows
-            webgl
+          modules: android
 
-      # --- Build Android ---
+      # 4. Build Android (APK + AAB)
       - name: Build Android
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
         with:
           targetPlatform: Android
-          buildName: LudoDreamAndroid
+          buildName: LudoDream
+          androidExportType: androidPackage
+          allowDirtyBuild: true
 
-      - name: Upload Android Artifact
-        uses: actions/upload-artifact@v4
+      # 5. Upload artefacts (APK & AAB)
+      - name: Upload Build
+        uses: actions/upload-artifact@v3
         with:
           name: Android-Build
           path: build/Android/
 
-      # --- Build Windows ---
-      - name: Build Windows
-        uses: game-ci/unity-builder@v4
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-        with:
-          targetPlatform: StandaloneWindows64
-          buildName: LudoDreamWindows
-
-      - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Windows-Build
-          path: build/StandaloneWindows64/
-
-      # --- Build WebGL ---
-      - name: Build WebGL
-        uses: game-ci/unity-builder@v4
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-        with:
-          targetPlatform: WebGL
-          buildName: LudoDreamWebGL
-
-      - name: Upload WebGL Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: WebGL-Build
-          path: build/WebGL/
-
-  # --- Release job ---
   release:
-    runs-on: ubuntu-latest
+    name: Publish Release
     needs: build
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
         with:
-          path: ./AllBuilds
+          name: Android-Build
+          path: ./ReleaseFiles
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v1
         with:
-          files: ./AllBuilds/**
+          files: ./ReleaseFiles/**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
