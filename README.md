@@ -27,6 +27,10 @@ How to use:
 Notes:
 - BoardLogic implements core rules (enter on 6, capture, house entry, overshoot prevention).
 - This scaffold contains code but no binary assets (models/sounds). Use Kenney / OpenGameArt for free assets.
-- If you want, I can also produce a ZIP including recommended free assets (models + sounds). Ask for assets pack.
+- If you want, I can also produce a ZIP including recommended free assets (models + sounds). Ask for assets pack.## ✔ Tests Unity (GitHub Actions)
+
+![Unity Tests](https://github.com/${{ github.repository }}/actions/workflows/unity-tests.yml/badge.svg)
+
+- 
 
 Enjoy building Ludo Dream!
