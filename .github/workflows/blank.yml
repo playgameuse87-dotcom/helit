@@ -1,5 +1,4 @@
-
-name: Build Unity Android
+name: Unity Multi-Platform Build CI
 
 on:
   push:
@@ -10,61 +9,45 @@ on:
 
 jobs:
   build:
-    name: Build Unity Android Project
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        targetPlatform: [ Android, StandaloneWindows64, WebGL ]
+
     steps:
-      # 1. Récupération du code
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # 2. Cache Unity
-      - name: Unity Cache
-        uses: actions/cache@v3
+      - name: Cache Unity Library
+        uses: actions/cache@v4
         with:
-          path: ~/.cache/unity3d
-          key: Unity-${{ runner.os }}
-      
-      # 3. Installer Unity (2022.3.20f1)
-      - name: Install Unity
-        uses: game-ci/unity-installer@v3
-        with:
-          unityVersion: 2022.3.20f1
-          modules: android
+          path: Library
+          key: ${{ runner.os }}-Library-${{ matrix.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
 
-      # 4. Build Android (APK + AAB)
-      - name: Build Android
+      - name: Activate Unity license
+        uses: game-ci/unity-activate@v1
+        with:
+          unityLicense: ${{ secrets.UNITY_LICENSE }}
+        env:
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+
+      - name: Build with Unity
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          targetPlatform: Android
-          buildName: LudoDream
-          androidExportType: androidPackage
-          allowDirtyBuild: true
+          targetPlatform: ${{ matrix.targetPlatform }}
+          buildName: LudoDreamClone
+          buildPath: build/${{ matrix.targetPlatform }}
 
-      # 5. Upload artefacts (APK & AAB)
-      - name: Upload Build
-        uses: actions/upload-artifact@v3
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: Android-Build
-          path: build/Android/
+          name: LudoDream-${{ matrix.targetPlatform }}
+          path: build/${{ matrix.targetPlatform }}/
 
-  release:
-    name: Publish Release
-    needs: build
-    runs-on: ubuntu-latest
 
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: Android-Build
-          path: ./ReleaseFiles
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ./ReleaseFiles/**
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
